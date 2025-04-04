@@ -8,19 +8,19 @@
     "net8.0": []
   },
   "packageFolders": {
-    "C:\\Users\\Taylor\\.nuget\\packages\\": {}
+    "/home/themby01/.nuget/packages/": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\Taylor\\School\\Comp\\25Spring\\gameTesting\\SteppingStonesServer\\NewServer\\NewServer.csproj",
+      "projectUniqueName": "/mnt/c/Users/Taylor/School/Comp/25Spring/gameTesting/SteppingStonesServer/NewServer/NewServer.csproj",
       "projectName": "NewServer",
-      "projectPath": "C:\\Users\\Taylor\\School\\Comp\\25Spring\\gameTesting\\SteppingStonesServer\\NewServer\\NewServer.csproj",
-      "packagesPath": "C:\\Users\\Taylor\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\Taylor\\School\\Comp\\25Spring\\gameTesting\\SteppingStonesServer\\NewServer\\obj\\",
+      "projectPath": "/mnt/c/Users/Taylor/School/Comp/25Spring/gameTesting/SteppingStonesServer/NewServer/NewServer.csproj",
+      "packagesPath": "/home/themby01/.nuget/packages/",
+      "outputPath": "/mnt/c/Users/Taylor/School/Comp/25Spring/gameTesting/SteppingStonesServer/NewServer/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\Taylor\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "/home/themby01/.nuget/NuGet/NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net8.0"
@@ -43,7 +43,8 @@
         "enableAudit": "true",
         "auditLevel": "low",
         "auditMode": "direct"
-      }
+      },
+      "SdkAnalysisLevel": "9.0.200"
     },
     "frameworks": {
       "net8.0": {
@@ -64,7 +65,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.403/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/9.0.202/PortableRuntimeIdentifierGraph.json"
       }
     }
   }
