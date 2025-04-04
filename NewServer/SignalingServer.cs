@@ -22,9 +22,14 @@ public class SignalingServer {
     public static byte[] bytesFromInt(int num) {
         return (BitConverter.IsLittleEndian) ? BitConverter.GetBytes(num).Reverse().ToArray() : BitConverter.GetBytes(num);
     }
-    public async Task Start() {
+    public async Task Start(bool local) {
+        string addr = "0.0.0.0";
+        if (!local) {
+            addr = await GetPublicIpAsync();
+        }
         if(endPoint == null) {
-            endPoint = new (IPAddress.Parse(await GetPublicIpAsync()), port);
+            // endPoint = new (), port);
+            endPoint = new (IPAddress.Parse(addr), port);
         }
         Console.WriteLine($"IP is {endPoint.Address.ToString()} and port is {endPoint.Port}");
         await OpenServer(); 
@@ -38,6 +43,8 @@ public class SignalingServer {
         listener.Listen(backlog);
 
         Socket handler = await listener.AcceptAsync();
+        Console.WriteLine($"connected to {((IPEndPoint)handler.RemoteEndPoint).Address.ToString()} and port is {((IPEndPoint)handler.RemoteEndPoint).Port.ToString()}");
+        //TODO: process multiple servers
         while (true){
             byte[] headBuf = new byte[8];
             int received = await handler.ReceiveAsync(headBuf, SocketFlags.None);
