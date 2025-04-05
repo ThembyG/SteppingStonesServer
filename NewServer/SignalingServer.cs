@@ -6,30 +6,28 @@ using System.Threading.Tasks;
 using System.Net.Sockets;
 using System.Text;
 using System.Security.Cryptography;
+using System.Collections.Concurrent;
 public class SignalingServer {
     
     int port = 4567;
     int backlog = 10;
     string upperAlph = "ABCDEFGHIJKLMNOPQRSTUVQXYZ";
 
-    Dictionary<string, IPEndPoint> dict = new Dictionary<string, IPEndPoint>();
+    ConcurrentDictionary<string, IPEndPoint> dict = new ConcurrentDictionary<string, IPEndPoint>();
     int roomCodeLength = 10;
     int serVersion = 1;
     IPEndPoint? endPoint;
-    byte[] failStatus = bytesFromInt(0);
-    byte[] succStatus = bytesFromInt(1);
-    
+    public const byte failStatus = 0x00;
+    public const byte succStatus = 0xFF;
+
+    List<Socket> clientSocks = new List<Socket>();    
     public static byte[] bytesFromInt(int num) {
         return (BitConverter.IsLittleEndian) ? BitConverter.GetBytes(num).Reverse().ToArray() : BitConverter.GetBytes(num);
     }
     public async Task Start(bool local) {
-        string addr = "0.0.0.0";
-        if (!local) {
-            addr = await GetPublicIpAsync();
-        }
         if (endPoint == null) {
             // endPoint = new (), port);
-            endPoint = new (IPAddress.Parse(addr), port);
+            endPoint = new (IPAddress.Any, port);
         }
         Console.WriteLine($"IP is {endPoint.Address.ToString()} and port is {endPoint.Port}");
         await OpenServer(); 
@@ -41,15 +39,29 @@ public class SignalingServer {
             ProtocolType.Tcp);
         listener.Bind(endPoint);
         listener.Listen(backlog);
-
-        Socket handler = await listener.AcceptAsync();
-        Console.WriteLine($"connected to {((IPEndPoint)handler.RemoteEndPoint).Address.ToString()} and port is {((IPEndPoint)handler.RemoteEndPoint).Port.ToString()}");
+        while (true) {
+            Socket handler = await listener.AcceptAsync();
+            Console.WriteLine($"connected to {((IPEndPoint)handler.RemoteEndPoint).Address.ToString()} and port is {((IPEndPoint)handler.RemoteEndPoint).Port.ToString()}");
+            ThreadPool.QueueUserWorkItem(HandleConnectionAsync, handler);
+        }
+        
         //TODO: process multiple servers
-        while (true){
+        
+    }
+
+    private async void HandleConnectionAsync(object? obj) {
+        if (obj == null) {
+            return;
+        }
+        Socket handler = (Socket)obj;
+        bool running = true;
+
+        while (running){
             byte[] headBuf = new byte[8];
             int received = await handler.ReceiveAsync(headBuf, SocketFlags.None);
             
             if (received != 8) {
+                running = false;
                 continue;
             }
 
@@ -60,9 +72,11 @@ public class SignalingServer {
 
             if (version >= serVersion) {
                 Console.WriteLine($"client version {version} ahead of server version {serVersion}.");
+                await SendMessageAsync(handler, [], 5);
+                running = false;
                 continue;
             }
-            
+
             switch (mType) {
                 case 0:
                     bool newCode = false;
@@ -71,7 +85,7 @@ public class SignalingServer {
                         code = new string(RandomNumberGenerator.GetItems(upperAlph.AsSpan(), roomCodeLength));
                         if (!dict.ContainsKey(code)) {
                             if (handler.RemoteEndPoint != null)
-                            dict.Add(code, (IPEndPoint)handler.RemoteEndPoint);
+                            dict.TryAdd(code, (IPEndPoint)handler.RemoteEndPoint);
                             newCode = true;
                         }
                     }
@@ -94,8 +108,10 @@ public class SignalingServer {
                         await SendMessageAsync(handler, failStatus, 3);
                         break;
                     }
-                    await sendIPAsync(handler, end, 3, succStatus);
-                    await sendIPAsync(handler, (IPEndPoint)handler.RemoteEndPoint, 4);
+                    await SendIPAsync(handler, end, 3, [succStatus]);
+                    await SendIPAsync(handler, (IPEndPoint)handler.RemoteEndPoint, 4);
+                    dict.TryRemove(playerCode, out _);
+                    running = false;
                     //send code found
 
                     break;
@@ -105,8 +121,10 @@ public class SignalingServer {
                     break;
             }
         }
+        handler.Shutdown(SocketShutdown.Both);
+        handler.Close();
     }
-    private async Task sendIPAsync(Socket handler, IPEndPoint endPoint, int messCode, 
+    private async Task SendIPAsync(Socket handler, IPEndPoint endPoint, int messCode, 
                                                         byte[]? status = null) {
         
         byte[] ip = endPoint.Address.GetAddressBytes();
