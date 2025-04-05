@@ -27,7 +27,7 @@ public class SignalingServer {
         if (!local) {
             addr = await GetPublicIpAsync();
         }
-        if(endPoint == null) {
+        if (endPoint == null) {
             // endPoint = new (), port);
             endPoint = new (IPAddress.Parse(addr), port);
         }
@@ -62,11 +62,8 @@ public class SignalingServer {
                 Console.WriteLine($"client version {version} ahead of server version {serVersion}.");
                 continue;
             }
-
-            //byte[] messBuf = new byte[length];
-
-            switch (mType)
-            {
+            
+            switch (mType) {
                 case 0:
                     bool newCode = false;
                     string code = "";
@@ -79,10 +76,6 @@ public class SignalingServer {
                         }
                     }
                     await SendMessageAsync(handler, code.Length + code, 1);
-                    break;
-                
-                case 1:
-                    Console.WriteLine($"server can't make room");
                     break;
 
                 case 2:
@@ -101,24 +94,32 @@ public class SignalingServer {
                         await SendMessageAsync(handler, failStatus, 3);
                         break;
                     }
-
-                    byte[] ip = end.Address.GetAddressBytes();
-                    byte[] cport = BitConverter.GetBytes(end.Port);
-                    if (BitConverter.IsLittleEndian) {
-                        Array.Reverse(cport);
-                    }
-                    await SendMessageAsync(handler, succStatus.Concat(ip.Concat(cport)).ToArray(), 3);
+                    await sendIPAsync(handler, end, 3, succStatus);
+                    await sendIPAsync(handler, (IPEndPoint)handler.RemoteEndPoint, 4);
                     //send code found
 
                     break;
+                
                 default:
                     Console.WriteLine($"mtype {mType} is not supported");
                     break;
             }
-
         }
     }
-
+    private async Task sendIPAsync(Socket handler, IPEndPoint endPoint, int messCode, 
+                                                        byte[]? status = null) {
+        
+        byte[] ip = endPoint.Address.GetAddressBytes();
+        byte[] port = BitConverter.GetBytes(endPoint.Port);
+        if (BitConverter.IsLittleEndian) {
+            Array.Reverse(port);
+        }
+        byte[] message = [];
+        if (status != null) {
+            message = status;
+        }
+        await SendMessageAsync(handler, message.Concat(ip.Concat(port)).ToArray(), messCode);
+    }
     private async Task SendMessageAsync(Socket handler, string message, int messCode) {
         byte[] body = Encoding.UTF8.GetBytes(message); 
         await SendMessageAsync(handler, body, messCode);
