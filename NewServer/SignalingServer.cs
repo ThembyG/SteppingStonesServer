@@ -70,7 +70,7 @@ public class SignalingServer {
             int mType = Int32.Parse(Encoding.UTF8.GetString(headBuf, 4, 4));
 
 
-            if (version >= serVersion) {
+            if (version > serVersion) {
                 Console.WriteLine($"client version {version} ahead of server version {serVersion}.");
                 await SendMessageAsync(handler, [], 5);
                 running = false;
@@ -79,6 +79,7 @@ public class SignalingServer {
 
             switch (mType) {
                 case 0:
+                    Console.WriteLine("mtype 0");
                     bool newCode = false;
                     string code = "";
                     while (!newCode) {
@@ -89,7 +90,8 @@ public class SignalingServer {
                             newCode = true;
                         }
                     }
-                    await SendMessageAsync(handler, code.Length + code, 1);
+                    await SendMessageAsync(handler, Pad(code.Length) + code, 1);
+                    Console.WriteLine($"message sent, code is {code}");
                     break;
 
                 case 2:
@@ -127,6 +129,7 @@ public class SignalingServer {
     private async Task SendIPAsync(Socket handler, IPEndPoint endPoint, int messCode, 
                                                         byte[]? status = null) {
         
+            
         byte[] ip = endPoint.Address.GetAddressBytes();
         byte[] port = BitConverter.GetBytes(endPoint.Port);
         if (BitConverter.IsLittleEndian) {
@@ -135,6 +138,7 @@ public class SignalingServer {
         byte[] message = [];
         if (status != null) {
             message = status;
+            Console.WriteLine($"sending message code {Convert.ToInt32(status[0])} to client at port {endPoint.Port}");
         }
         await SendMessageAsync(handler, message.Concat(ip.Concat(port)).ToArray(), messCode);
     }
@@ -145,7 +149,9 @@ public class SignalingServer {
 
     private async Task SendMessageAsync(Socket handler, byte[] message, int messCode) {
         string header = Pad(serVersion) + Pad(messCode);
-        await handler.SendAsync(Encoding.UTF8.GetBytes(header).Concat(message).ToArray());
+        byte[] byteMess = Encoding.UTF8.GetBytes(header).Concat(message).ToArray();
+        // Console.WriteLine(header + Encoding.UTF8.GetString(message));
+        await handler.SendAsync(byteMess);
     }
     private string Pad (int num) {
         string res = "";
