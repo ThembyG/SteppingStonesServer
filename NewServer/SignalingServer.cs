@@ -7,13 +7,28 @@ using System.Net.Sockets;
 using System.Text;
 using System.Security.Cryptography;
 using System.Collections.Concurrent;
+using System.Threading;
 public class SignalingServer {
     
+    private class StringKey {
+        private static ConcurrentDictionary<string, StringKey> skDict = new ConcurrentDictionary<string, StringKey>();
+        public static StringKey ofString (string s) {
+            StringKey sk;
+            if (!skDict.ContainsKey(s)) {
+                skDict.TryAdd(s, new StringKey());
+            } 
+            skDict.TryGetValue(s, out sk);
+            return sk;
+        }
+        private StringKey() {}
+    }
     int port = 4567;
     int backlog = 10;
     string upperAlph = "ABCDEFGHIJKLMNOPQRSTUVQXYZ";
 
-    ConcurrentDictionary<string, IPEndPoint> dict = new ConcurrentDictionary<string, IPEndPoint>();
+    ConcurrentDictionary<StringKey, IPEndPoint> hostDict = new ConcurrentDictionary<StringKey, IPEndPoint>();
+
+    ConcurrentDictionary<StringKey, IPEndPoint> clientDict = new ConcurrentDictionary<StringKey, IPEndPoint>();
     int roomCodeLength = 10;
     int serVersion = 1;
     IPEndPoint? endPoint;
@@ -76,22 +91,38 @@ public class SignalingServer {
                 running = false;
                 continue;
             }
-
+            Console.WriteLine($"mtype: {mType}");
             switch (mType) {
+                
                 case 0:
                     Console.WriteLine("mtype 0");
                     bool newCode = false;
                     string code = "";
                     while (!newCode) {
                         code = new string(RandomNumberGenerator.GetItems(upperAlph.AsSpan(), roomCodeLength));
-                        if (!dict.ContainsKey(code)) {
+                        StringKey lkey = StringKey.ofString(code);
+                        if (!clientDict.ContainsKey(lkey)) {
                             if (handler.RemoteEndPoint != null)
-                            dict.TryAdd(code, (IPEndPoint)handler.RemoteEndPoint);
+                            hostDict.TryAdd(lkey, (IPEndPoint)handler.RemoteEndPoint);
                             newCode = true;
                         }
                     }
+                    StringKey hkey = StringKey.ofString(code);
                     await SendMessageAsync(handler, Pad(code.Length) + code, 1);
                     Console.WriteLine($"message sent, code is {code}");
+                    
+                    Monitor.Enter(hkey);
+                    while (clientDict.ContainsKey(hkey) == false) {
+                        Monitor.Wait(hkey);
+                    }
+                    Console.WriteLine("unlocked");
+                    IPEndPoint destIp;
+                    clientDict.TryGetValue(hkey, out destIp);
+                    if (destIp is null) {
+                        Console.WriteLine("null destIp");
+                    }
+                    Monitor.Exit(hkey);
+                    await SendIPAsync(handler, destIp, 4);
                     break;
 
                 case 2:
@@ -104,15 +135,28 @@ public class SignalingServer {
                     byte[] message = new byte[Int32.Parse(len)];
                     recd = await handler.ReceiveAsync(message, SocketFlags.None);
                     string playerCode = Encoding.UTF8.GetString(message);
+                    StringKey ckey = StringKey.ofString(playerCode);
                     IPEndPoint end;
-                    if (!dict.TryGetValue(playerCode, out end)) {
+                    if (!hostDict.TryGetValue(ckey, out end)) {
                         byte [] failStatus = BitConverter.GetBytes(1);
                         await SendMessageAsync(handler, failStatus, 3);
                         break;
                     }
                     await SendIPAsync(handler, end, 3, [succStatus]);
-                    await SendIPAsync(handler, (IPEndPoint)handler.RemoteEndPoint, 4);
-                    dict.TryRemove(playerCode, out _);
+                    Monitor.Enter(ckey);
+                    if (handler.RemoteEndPoint == null) {
+                        Console.WriteLine("null endp");
+                    }
+                    if (!clientDict.TryAdd(ckey, (IPEndPoint)handler.RemoteEndPoint)) {
+                        Console.WriteLine("client not added to dict");
+                    };
+                    Console.WriteLine($"host port is {end.Port} client port is {((IPEndPoint)handler.RemoteEndPoint).Port}");
+                    Monitor.PulseAll(ckey);
+                    Monitor.Exit(ckey);
+                    
+                    // Monitor.Enter(ckey);
+                    // clientDict.TryRemove(ckey, out _);
+                    // Monitor.Exit(ckey);
                     running = false;
                     //send code found
 
@@ -123,6 +167,7 @@ public class SignalingServer {
                     break;
             }
         }
+        await Task.Delay(25);
         handler.Shutdown(SocketShutdown.Both);
         handler.Close();
     }
@@ -139,6 +184,8 @@ public class SignalingServer {
         if (status != null) {
             message = status;
             Console.WriteLine($"sending message code {Convert.ToInt32(status[0])} to client at port {endPoint.Port}");
+        } else {
+            Console.WriteLine($"sending message to client at port {endPoint.Port}");
         }
         await SendMessageAsync(handler, message.Concat(ip.Concat(port)).ToArray(), messCode);
     }
