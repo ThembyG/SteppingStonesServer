@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "/mnt/c/Users/Taylor/School/Comp/25Spring/gameTesting/SteppingStonesServer/NewServer/NewServer.csproj": {}
+    "/Users/janebrockett/Documents/GitHub/SteppingStonesServer/NewServer/NewServer.csproj": {}
   },
   "projects": {
-    "/mnt/c/Users/Taylor/School/Comp/25Spring/gameTesting/SteppingStonesServer/NewServer/NewServer.csproj": {
+    "/Users/janebrockett/Documents/GitHub/SteppingStonesServer/NewServer/NewServer.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/mnt/c/Users/Taylor/School/Comp/25Spring/gameTesting/SteppingStonesServer/NewServer/NewServer.csproj",
+        "projectUniqueName": "/Users/janebrockett/Documents/GitHub/SteppingStonesServer/NewServer/NewServer.csproj",
         "projectName": "NewServer",
-        "projectPath": "/mnt/c/Users/Taylor/School/Comp/25Spring/gameTesting/SteppingStonesServer/NewServer/NewServer.csproj",
-        "packagesPath": "/home/themby01/.nuget/packages/",
-        "outputPath": "/mnt/c/Users/Taylor/School/Comp/25Spring/gameTesting/SteppingStonesServer/NewServer/obj/",
+        "projectPath": "/Users/janebrockett/Documents/GitHub/SteppingStonesServer/NewServer/NewServer.csproj",
+        "packagesPath": "/Users/janebrockett/.nuget/packages/",
+        "outputPath": "/Users/janebrockett/Documents/GitHub/SteppingStonesServer/NewServer/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "/home/themby01/.nuget/NuGet/NuGet.Config"
+          "/Users/janebrockett/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
@@ -37,8 +37,7 @@
           "enableAudit": "true",
           "auditLevel": "low",
           "auditMode": "direct"
-        },
-        "SdkAnalysisLevel": "9.0.200"
+        }
       },
       "frameworks": {
         "net8.0": {
@@ -59,7 +58,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/9.0.203/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/8.0.403/PortableRuntimeIdentifierGraph.json"
         }
       }
     }
